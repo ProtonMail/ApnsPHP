@@ -79,6 +79,10 @@ class ApnsPHP_Push extends ApnsPHP_Abstract
 
 	protected $_aMessageQueue = array(); /**< @type array Message queue. */
 	protected $_aErrors = array(); /**< @type array Error container. */
+	public function keepAlive($alive = false) 
+	{
+		$this->_bKeepAlive = $alive;
+	}
 
 	/**
 	 * Set the send retry times value.
@@ -170,14 +174,26 @@ class ApnsPHP_Push extends ApnsPHP_Abstract
 				$nErrors = 0;
 				if (!empty($aMessage['ERRORS'])) {
 					foreach($aMessage['ERRORS'] as $aError) {
-						if ($aError['statusCode'] == 0) {
-							$this->_log("INFO: Message ID {$k} {$sCustomIdentifier} has no error ({$aError['statusCode']}), removing from queue...");
-							$this->_removeMessageFromQueue($k);
-							continue 2;
-						} else if ($aError['statusCode'] > 1 && $aError['statusCode'] <= 8) {
-							$this->_log("WARNING: Message ID {$k} {$sCustomIdentifier} has an unrecoverable error ({$aError['statusCode']}), removing from queue without retrying...");
-							$this->_removeMessageFromQueue($k, true);
-							continue 2;
+						if ($this->_nProtocol === self::PROTOCOL_HTTP) {
+							if ($aError['statusCode'] == 200) {
+								$this->_log("INFO: Message ID {$k} {$sCustomIdentifier} has no error ({$aError['statusCode']}), removing from queue...");
+								$this->_removeMessageFromQueue($k);
+								continue 2;
+							} else if (isset($this->_aHTTPErrorResponseMessages[$aError['statusCode']])) {
+								$this->_log("WARNING: Message ID {$k} {$sCustomIdentifier} has an unrecoverable error ({$aError['statusCode']} : {$aError['statusMessage']}), removing from queue without retrying...");
+								$this->_removeMessageFromQueue($k, true);
+								continue 2;
+							}
+						} else {
+							if ($aError['statusCode'] == 0) {
+								$this->_log("INFO: Message ID {$k} {$sCustomIdentifier} has no error ({$aError['statusCode']}), removing from queue...");
+								$this->_removeMessageFromQueue($k);
+								continue 2;
+							} else if ($aError['statusCode'] > 1 && $aError['statusCode'] <= 8) {
+								$this->_log("WARNING: Message ID {$k} {$sCustomIdentifier} has an unrecoverable error ({$aError['statusCode']}), removing from queue without retrying...");
+								$this->_removeMessageFromQueue($k, true);
+								continue 2;
+							}
 						}
 					}
 					if (($nErrors = count($aMessage['ERRORS'])) >= $this->_nSendRetryTimes) {
@@ -407,7 +423,9 @@ class ApnsPHP_Push extends ApnsPHP_Abstract
 			$aErrorMessage['identifier'] . ': ' .
 			$aErrorMessage['statusMessage'] . ' (' . $aErrorMessage['statusCode'] . ').');
 
-		$this->disconnect();
+		if (!$this->_bKeepAlive) {
+			$this->disconnect();
+		}
 
 		foreach($this->_aMessageQueue as $k => &$aMessage) {
 			if ($k < $aErrorMessage['identifier']) {

@@ -72,6 +72,9 @@ abstract class ApnsPHP_Abstract
 
 	protected $_hSocket; /**< @type resource SSL Socket. */
 
+
+	protected $_bKeepAlive = false; /**< @type array Message queue. */
+
 	/**
 	 * Constructor.
 	 *
@@ -400,8 +403,14 @@ abstract class ApnsPHP_Abstract
 	protected function _httpInit()
 	{
 		$this->_log("INFO: Trying to initialize HTTP/2 backend...");
-
-		$this->_hSocket = curl_init();
+		if ($this->_bKeepAlive) {
+			if (!$this->_hSocket) { 
+				$this->_hSocket = curl_init();
+			}
+		} else {
+			$this->_hSocket = curl_init();
+		}
+		
 		if (!$this->_hSocket) {
 			throw new ApnsPHP_Exception(
 				"Unable to initialize HTTP/2 backend."
