@@ -33,10 +33,11 @@
  */
 class ApnsPHP_Message
 {
-	const PAYLOAD_MAXIMUM_SIZE = 2048; /**< @type integer The maximum size allowed for a notification payload. */
+	// const PAYLOAD_MAXIMUM_SIZE = 2048; /**< @type integer The maximum size allowed for a notification payload. */
+	const PAYLOAD_MAXIMUM_SIZE = 4096; /**< @type integer The maximum size allowed for a notification payload. */
 	const APPLE_RESERVED_NAMESPACE = 'aps'; /**< @type string The Apple-reserved aps namespace. */
 
-	protected $_bAutoAdjustLongPayload = true; /**< @type boolean If the JSON payload is longer than maximum allowed size, shorts message text. */
+	protected $_bAutoAdjustLongPayload = false; /**< @type boolean If the JSON payload is longer than maximum allowed size, shorts message text. */
 
 	protected $_aDeviceTokens = array(); /**< @type array Recipients device tokens. */
 
